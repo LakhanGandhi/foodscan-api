@@ -12,6 +12,7 @@ const REQUIRED_VARS = [
   "MONGODB_URI",
   "JWT_ACCESS_SECRET",
   "JWT_REFRESH_SECRET",
+  "BOOTSTRAP_SECRET",
 ];
 
 function requireEnv() {
@@ -46,4 +47,6 @@ module.exports = {
     .filter(Boolean),
 
   ipHashSalt: process.env.IP_HASH_SALT || "change-this-salt",
+
+  bootstrapSecret: process.env.BOOTSTRAP_SECRET,
 };

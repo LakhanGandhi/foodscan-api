@@ -12,13 +12,13 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
+app.set("trust proxy", true); // Render sits behind a proxy; needed for req.ip to reflect the real client IP (used in audit logs)
+
 // ---- security & parsing ----
 app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow no-origin requests (server-to-server, curl, health checks)
-      // and anything explicitly listed in CORS_ORIGINS.
       if (!origin || env.corsOrigins.length === 0 || env.corsOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -34,7 +34,7 @@ if (env.nodeEnv !== "test") {
   app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined"));
 }
 
-// ---- rate limiting (general baseline; auth-specific limits come with the Auth module) ----
+// ---- rate limiting (general baseline) ----
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,

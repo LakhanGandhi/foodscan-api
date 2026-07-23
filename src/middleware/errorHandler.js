@@ -7,6 +7,16 @@ const env = require("../config/env");
  * themselves.
  */
 function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-vars
+  // express.json() throws this specific shape when the request body isn't
+  // valid JSON - treat it as a client error (400), not a server error (500).
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({
+      success: false,
+      data: null,
+      error: { code: "INVALID_JSON", message: "Request body is not valid JSON." },
+    });
+  }
+
   const statusCode = err.isApiError ? err.statusCode : 500;
   const code = err.isApiError ? err.code : "INTERNAL_SERVER_ERROR";
   const message = err.isApiError ? err.message : "Something went wrong. Please try again.";

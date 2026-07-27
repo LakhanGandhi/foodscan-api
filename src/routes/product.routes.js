@@ -13,11 +13,8 @@ const ALL_ROLES = [ROLES.SUPER_ADMIN, ROLES.COMPANY_ADMIN, ROLES.COMPANY_EMPLOYE
 router.use(authenticate);
 
 router.post("/", authorize(...ALL_ROLES), validate(createProductValidator), productController.create);
-
 router.get("/", authorize(...ALL_ROLES), scopeToCompany, productController.list);
-
 router.get("/:id", authorize(...ALL_ROLES), scopeToCompany, productController.getById);
-
 router.patch(
   "/:id",
   authorize(...ALL_ROLES),
@@ -25,7 +22,10 @@ router.patch(
   validate(updateProductValidator),
   productController.update
 );
-
 router.delete("/:id", authorize(ROLES.SUPER_ADMIN), productController.remove);
+
+// --- QR Generation ---
+router.get("/:id/qr-url", authorize(...ALL_ROLES), scopeToCompany, productController.getQrUrl);
+router.get("/:id/qr", authorize(...ALL_ROLES), scopeToCompany, productController.getQrImage);
 
 module.exports = router;

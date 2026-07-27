@@ -10,7 +10,7 @@ const companySchema = new mongoose.Schema(
     legalCompanyName: { type: String, required: true, trim: true },
     brandName: { type: String, trim: true, default: null }, // optional
     companyType: { type: String, required: true, trim: true },
-    gstNumber: { type: String, required: true, trim: true },
+    gstNumber: { type: String, required: true, trim: true, uppercase: true, unique: true },
     panNumber: { type: String, trim: true, default: null }, // optional
     cinNumber: { type: String, trim: true, default: null }, // optional
     fssaiLicense: { type: String, trim: true, default: null }, // optional

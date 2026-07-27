@@ -17,6 +17,16 @@ function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-va
     });
   }
 
+  // MongoDB duplicate-key error (from a unique index) - surface as a clean 409, not a 500.
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue || {}).join(", ") || "field";
+    return res.status(409).json({
+      success: false,
+      data: null,
+      error: { code: "DUPLICATE_VALUE", message: `A record with that ${field} already exists.` },
+    });
+  }
+
   const statusCode = err.isApiError ? err.statusCode : 500;
   const code = err.isApiError ? err.code : "INTERNAL_SERVER_ERROR";
   const message = err.isApiError ? err.message : "Something went wrong. Please try again.";

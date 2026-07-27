@@ -7,7 +7,7 @@ const plantSchema = new mongoose.Schema(
     companyId: { type: String, ref: "Company", required: true, index: true },
 
     plantName: { type: String, required: true, trim: true },
-    plantCode: { type: String, required: true, trim: true },
+    plantCode: { type: String, required: true, trim: true, uppercase: true },
     address: { type: String, required: true, trim: true },
     city: { type: String, required: true, trim: true },
     state: { type: String, required: true, trim: true },
@@ -26,5 +26,7 @@ const plantSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+plantSchema.index({ companyId: 1, plantCode: 1 }, { unique: true });
 
 module.exports = mongoose.model("Plant", plantSchema);

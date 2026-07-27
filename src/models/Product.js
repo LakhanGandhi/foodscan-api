@@ -9,7 +9,7 @@ const productSchema = new mongoose.Schema(
 
     // Basic
     productName: { type: String, required: true, trim: true },
-    sku: { type: String, required: true, trim: true },
+    sku: { type: String, required: true, trim: true, uppercase: true },
     category: { type: String, required: true, trim: true },
     brand: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: "" },
@@ -37,5 +37,7 @@ const productSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+productSchema.index({ companyId: 1, sku: 1 }, { unique: true });
 
 module.exports = mongoose.model("Product", productSchema);

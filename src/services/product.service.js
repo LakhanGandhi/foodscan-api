@@ -1,5 +1,6 @@
 const ApiError = require("../utils/ApiError");
 const ROLES = require("../utils/roles");
+const { buildPublicProductUrl, generateQrPngBuffer, generateQrDataUrl } = require("../utils/qrCode");
 
 const productRepo = require("../repositories/product.repository");
 const companyRepo = require("../repositories/company.repository");
@@ -22,7 +23,6 @@ async function assertPlantBelongsToCompany(plantId, companyId) {
 }
 
 async function createProduct(data, actorUser, ip) {
-  // Company Admin/Employee can only create a product under their own company, regardless of what companyId was sent.
   const companyId = actorUser.role === ROLES.SUPER_ADMIN ? data.companyId : actorUser.companyId;
 
   const company = await companyRepo.findById(companyId);
@@ -60,9 +60,6 @@ async function updateProduct(id, updates, actorUser, companyScope, ip) {
   if (!existing) throw new ApiError(404, "PRODUCT_NOT_FOUND", "No product exists with that ID.");
   assertAccess(existing, companyScope);
 
-  // A product's owning company is structural - never editable. Its plant CAN
-  // be reassigned (e.g. production relocated), but only to another plant
-  // within the SAME company.
   const { companyId, plantId, ...safeUpdates } = updates;
   if (plantId) {
     await assertPlantBelongsToCompany(plantId, existing.companyId);
@@ -100,4 +97,31 @@ async function deleteProduct(id, actorUser, ip) {
   });
 }
 
-module.exports = { createProduct, listProducts, getProductById, updateProduct, deleteProduct };
+// --- QR Generation ---
+
+async function getPublicUrl(id, companyScope) {
+  await getProductById(id, companyScope); // reuses existence + access check
+  return buildPublicProductUrl(id);
+}
+
+async function getQrPngBuffer(id, companyScope) {
+  const url = await getPublicUrl(id, companyScope);
+  return generateQrPngBuffer(url);
+}
+
+async function getQrDataUrl(id, companyScope) {
+  const url = await getPublicUrl(id, companyScope);
+  const dataUrl = await generateQrDataUrl(url);
+  return { url, dataUrl };
+}
+
+module.exports = {
+  createProduct,
+  listProducts,
+  getProductById,
+  updateProduct,
+  deleteProduct,
+  getPublicUrl,
+  getQrPngBuffer,
+  getQrDataUrl,
+};

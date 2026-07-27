@@ -20,4 +20,24 @@ function countByRole(role) {
   return User.countDocuments({ role });
 }
 
-module.exports = { findByEmail, findById, create, updateLastLogin, countByRole };
+// --- new for Employee Management ---
+
+function findAll(companyScope) {
+  // companyScope is null for Super Admin (no restriction), or a companyId for everyone else.
+  const filter = companyScope ? { companyId: companyScope } : {};
+  return User.find(filter).sort({ createdAt: -1 });
+}
+
+function updateById(id, updates) {
+  return User.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+}
+
+module.exports = {
+  findByEmail,
+  findById,
+  create,
+  updateLastLogin,
+  countByRole,
+  findAll,
+  updateById,
+};

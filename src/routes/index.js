@@ -7,6 +7,7 @@ const plantRoutes = require("./plant.routes");
 const productRoutes = require("./product.routes");
 const userRoutes = require("./user.routes");
 const publicRoutes = require("./public.routes");
+const analyticsRoutes = require("./analytics.routes");
 
 const router = express.Router();
 
@@ -18,8 +19,6 @@ router.use("/plants", plantRoutes);
 router.use("/products", productRoutes);
 router.use("/users", userRoutes);
 router.use("/public", publicRoutes);
-
-// Future modules mount here as they're built, e.g.:
-// router.use("/analytics", analyticsRoutes);
+router.use("/analytics", analyticsRoutes);
 
 module.exports = router;

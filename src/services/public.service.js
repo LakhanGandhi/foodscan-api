@@ -1,28 +1,40 @@
 const ApiError = require("../utils/ApiError");
+const { lookupGeo } = require("../utils/geoLookup");
+const hashVisitor = require("../utils/visitorHash");
 
 const productRepo = require("../repositories/product.repository");
 const plantRepo = require("../repositories/plant.repository");
 const companyRepo = require("../repositories/company.repository");
+const scanLogRepo = require("../repositories/scanLog.repository");
 
-/**
- * Public-safe view of a product, for the QR landing page. No login,
- * so this is the most exposed endpoint in the whole system - it
- * deliberately returns a hand-picked subset of fields, never the raw
- * database documents. GST/PAN/CIN, internal contact details, audit
- * fields, timestamps, and raw companyId/plantId references are never
- * included here.
- */
-async function getPublicProductView(productId) {
+// Fire-and-forget - the public page should never wait on the geo
+// lookup or the log write. Failures here are logged, never thrown.
+async function logScanAsync(product, ip, userAgent, referrer) {
+  try {
+    const geo = await lookupGeo(ip);
+    await scanLogRepo.record({
+      productId: product._id,
+      companyId: product.companyId,
+      plantId: product.plantId,
+      visitorHash: hashVisitor(ip, userAgent),
+      country: geo.country,
+      region: geo.region,
+      city: geo.city,
+      userAgent: userAgent || "",
+      referrer: referrer || "",
+    });
+  } catch (err) {
+    console.error("[scan log] failed:", err.message);
+  }
+}
+
+async function getPublicProductView(productId, requestMeta) {
   const product = await productRepo.findById(productId);
-  // A "hidden" product is not found to the public, full stop - not
-  // "restricted," genuinely absent, so its existence isn't confirmed.
   if (!product || product.status === "hidden") {
     throw new ApiError(404, "PRODUCT_NOT_FOUND", "No product found for this code.");
   }
 
   const company = await companyRepo.findById(product.companyId);
-  // A product belonging to a company that isn't approved (pending/
-  // disabled/suspended) is also treated as not found publicly.
   if (!company || company.status !== "approved") {
     throw new ApiError(404, "PRODUCT_NOT_FOUND", "No product found for this code.");
   }
@@ -30,6 +42,10 @@ async function getPublicProductView(productId) {
   const plant = await plantRepo.findById(product.plantId);
   if (!plant) {
     throw new ApiError(404, "PRODUCT_NOT_FOUND", "No product found for this code.");
+  }
+
+  if (requestMeta) {
+    logScanAsync(product, requestMeta.ip, requestMeta.userAgent, requestMeta.referrer);
   }
 
   return {
@@ -46,8 +62,7 @@ async function getPublicProductView(productId) {
     nutritionPer100g: product.nutritionPer100g,
     allergens: product.allergens,
     certifications: product.certifications,
-    status: product.status, // e.g. lets the frontend show a "discontinued" notice
-
+    status: product.status,
     plant: {
       name: plant.plantName,
       address: plant.address,
@@ -57,7 +72,6 @@ async function getPublicProductView(productId) {
       pinCode: plant.pinCode,
       fssaiLicense: plant.fssaiLicense,
     },
-
     company: {
       name: company.companyName,
       brandName: company.brandName,

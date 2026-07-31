@@ -5,10 +5,9 @@ const hashVisitor = require("../utils/visitorHash");
 const productRepo = require("../repositories/product.repository");
 const plantRepo = require("../repositories/plant.repository");
 const companyRepo = require("../repositories/company.repository");
+const brandRepo = require("../repositories/brand.repository");
 const scanLogRepo = require("../repositories/scanLog.repository");
 
-// Fire-and-forget - the public page should never wait on the geo
-// lookup or the log write. Failures here are logged, never thrown.
 async function logScanAsync(product, ip, userAgent, referrer) {
   try {
     const geo = await lookupGeo(ip);
@@ -44,6 +43,11 @@ async function getPublicProductView(productId, requestMeta) {
     throw new ApiError(404, "PRODUCT_NOT_FOUND", "No product found for this code.");
   }
 
+  const brand = await brandRepo.findById(product.brandId);
+  if (!brand) {
+    throw new ApiError(404, "PRODUCT_NOT_FOUND", "No product found for this code.");
+  }
+
   if (requestMeta) {
     logScanAsync(product, requestMeta.ip, requestMeta.userAgent, requestMeta.referrer);
   }
@@ -52,7 +56,7 @@ async function getPublicProductView(productId, requestMeta) {
     id: product._id,
     name: product.productName,
     sku: product.sku,
-    brand: product.brand,
+    brand: brand.brandName,
     category: product.category,
     description: product.description,
     countryOfOrigin: product.countryOfOrigin,

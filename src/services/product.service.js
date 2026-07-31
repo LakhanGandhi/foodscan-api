@@ -5,6 +5,7 @@ const { buildPublicProductUrl, generateQrPngBuffer, generateQrDataUrl } = requir
 const productRepo = require("../repositories/product.repository");
 const companyRepo = require("../repositories/company.repository");
 const plantRepo = require("../repositories/plant.repository");
+const brandRepo = require("../repositories/brand.repository");
 const auditLogRepo = require("../repositories/auditLog.repository");
 
 function assertAccess(product, companyScope) {
@@ -22,6 +23,15 @@ async function assertPlantBelongsToCompany(plantId, companyId) {
   return plant;
 }
 
+async function assertBrandBelongsToCompany(brandId, companyId) {
+  const brand = await brandRepo.findById(brandId);
+  if (!brand) throw new ApiError(400, "INVALID_BRAND", "No brand exists with that brandId.");
+  if (brand.companyId !== companyId) {
+    throw new ApiError(400, "BRAND_COMPANY_MISMATCH", "That brand does not belong to this company.");
+  }
+  return brand;
+}
+
 async function createProduct(data, actorUser, ip) {
   const companyId = actorUser.role === ROLES.SUPER_ADMIN ? data.companyId : actorUser.companyId;
 
@@ -29,6 +39,7 @@ async function createProduct(data, actorUser, ip) {
   if (!company) throw new ApiError(400, "INVALID_COMPANY", "No company exists with that companyId.");
 
   await assertPlantBelongsToCompany(data.plantId, companyId);
+  await assertBrandBelongsToCompany(data.brandId, companyId);
 
   const product = await productRepo.create({ ...data, companyId, createdBy: actorUser.userId });
 
@@ -60,10 +71,14 @@ async function updateProduct(id, updates, actorUser, companyScope, ip) {
   if (!existing) throw new ApiError(404, "PRODUCT_NOT_FOUND", "No product exists with that ID.");
   assertAccess(existing, companyScope);
 
-  const { companyId, plantId, ...safeUpdates } = updates;
+  const { companyId, plantId, brandId, ...safeUpdates } = updates;
   if (plantId) {
     await assertPlantBelongsToCompany(plantId, existing.companyId);
     safeUpdates.plantId = plantId;
+  }
+  if (brandId) {
+    await assertBrandBelongsToCompany(brandId, existing.companyId);
+    safeUpdates.brandId = brandId;
   }
 
   const oldValue = existing.toObject();
@@ -97,10 +112,8 @@ async function deleteProduct(id, actorUser, ip) {
   });
 }
 
-// --- QR Generation ---
-
 async function getPublicUrl(id, companyScope) {
-  await getProductById(id, companyScope); // reuses existence + access check
+  await getProductById(id, companyScope);
   return buildPublicProductUrl(id);
 }
 

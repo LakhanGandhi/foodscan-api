@@ -8,10 +8,10 @@ function createProductValidator(body) {
   const required = {
     companyId: body.companyId,
     plantId: body.plantId,
+    brandId: body.brandId,
     productName: body.productName,
     sku: body.sku,
     category: body.category,
-    brand: body.brand,
     countryOfOrigin: body.countryOfOrigin,
   };
   Object.entries(required).forEach(([field, value]) => {

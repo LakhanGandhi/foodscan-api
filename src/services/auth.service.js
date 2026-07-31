@@ -12,8 +12,24 @@ const userRepo = require("../repositories/user.repository");
 const refreshTokenRepo = require("../repositories/refreshToken.repository");
 const passwordResetRepo = require("../repositories/passwordReset.repository");
 
-function toPublicUser(user) {
-  return { id: user._id, email: user.email, name: user.name, role: user.role, companyId: user.companyId, isOwner: user.isOwner };
+const INACTIVITY_DISABLE_DAYS = 45;
+const PASSWORD_EXPIRY_DAYS = 30;
+const PASSWORD_WARNING_START_DAYS = 20;
+
+function daysSince(date) {
+  return (Date.now() - new Date(date).getTime()) / 86400000;
+}
+
+function toPublicUser(user, extra = {}) {
+  return {
+    id: user._id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    companyId: user.companyId,
+    isOwner: user.isOwner,
+    ...extra,
+  };
 }
 
 function buildTokenPayload(user) {
@@ -36,10 +52,35 @@ async function login({ email, password }) {
   const passwordMatches = await comparePassword(password, user.passwordHash);
   if (!passwordMatches) throw new ApiError(401, "INVALID_CREDENTIALS", "Incorrect email or password.");
 
+  // 45-day inactivity rule - checked only after credentials are confirmed correct,
+  // so a wrong-password guess can never be used to force-disable someone's account.
+  if (user.lastLoginAt && daysSince(user.lastLoginAt) > INACTIVITY_DISABLE_DAYS) {
+    user.status = "disabled";
+    await user.save();
+    throw new ApiError(
+      403,
+      "ACCOUNT_DISABLED_INACTIVITY",
+      "This account was disabled due to 45+ days of inactivity. Please contact your administrator."
+    );
+  }
+
+  // 30-day password expiry rule.
+  const passwordAgeDays = daysSince(user.passwordChangedAt || user.createdAt);
+  if (passwordAgeDays > PASSWORD_EXPIRY_DAYS) {
+    throw new ApiError(
+      403,
+      "PASSWORD_EXPIRED",
+      "Your password has expired. Please contact your administrator to reset it."
+    );
+  }
+
   const tokens = await issueTokens(user);
   await userRepo.updateLastLogin(user._id);
 
-  return { ...tokens, user: toPublicUser(user) };
+  const passwordWarning = passwordAgeDays >= PASSWORD_WARNING_START_DAYS;
+  const passwordDaysRemaining = Math.max(0, Math.ceil(PASSWORD_EXPIRY_DAYS - passwordAgeDays));
+
+  return { ...tokens, user: toPublicUser(user, { passwordWarning, passwordDaysRemaining }) };
 }
 
 async function refresh(oldRefreshToken) {
@@ -65,7 +106,11 @@ async function refresh(oldRefreshToken) {
   await refreshTokenRepo.revoke(stored._id);
   const tokens = await issueTokens(user);
 
-  return { ...tokens, user: toPublicUser(user) };
+  const passwordAgeDays = daysSince(user.passwordChangedAt || user.createdAt);
+  const passwordWarning = passwordAgeDays >= PASSWORD_WARNING_START_DAYS;
+  const passwordDaysRemaining = Math.max(0, Math.ceil(PASSWORD_EXPIRY_DAYS - passwordAgeDays));
+
+  return { ...tokens, user: toPublicUser(user, { passwordWarning, passwordDaysRemaining }) };
 }
 
 async function logout(refreshToken) {
@@ -117,7 +162,7 @@ async function bootstrapSuperAdmin({ name, email, password, bootstrapSecret }) {
     name,
     role: ROLES.SUPER_ADMIN,
     status: "active",
-    isOwner: true, // the one and only owner - created once, here, never again
+    isOwner: true,
   });
   return toPublicUser(user);
 }

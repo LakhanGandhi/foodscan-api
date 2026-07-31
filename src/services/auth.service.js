@@ -13,11 +13,11 @@ const refreshTokenRepo = require("../repositories/refreshToken.repository");
 const passwordResetRepo = require("../repositories/passwordReset.repository");
 
 function toPublicUser(user) {
-  return { id: user._id, email: user.email, name: user.name, role: user.role, companyId: user.companyId };
+  return { id: user._id, email: user.email, name: user.name, role: user.role, companyId: user.companyId, isOwner: user.isOwner };
 }
 
 function buildTokenPayload(user) {
-  return { userId: user._id, role: user.role, companyId: user.companyId };
+  return { userId: user._id, role: user.role, companyId: user.companyId, isOwner: user.isOwner };
 }
 
 async function issueTokens(user) {
@@ -62,7 +62,6 @@ async function refresh(oldRefreshToken) {
     throw new ApiError(401, "INVALID_REFRESH_TOKEN", "Account no longer active.");
   }
 
-  // Rotate: revoke the used token, issue a brand new pair.
   await refreshTokenRepo.revoke(stored._id);
   const tokens = await issueTokens(user);
 
@@ -77,17 +76,12 @@ async function logout(refreshToken) {
 
 async function forgotPassword(email) {
   const user = await userRepo.findByEmail(email);
-  // Same response whether or not the account exists, so we never
-  // leak which emails are registered.
   if (!user) return { resetToken: null };
 
   const resetToken = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
   await passwordResetRepo.create({ userId: user._id, tokenHash: hashToken(resetToken), expiresAt });
 
-  // No email service yet (out of scope for V1) - the token is
-  // returned so it's testable now, and swapped for real email
-  // delivery later without touching this function's shape.
   return { resetToken };
 }
 
@@ -100,9 +94,10 @@ async function resetPassword({ token, newPassword }) {
   if (!user) throw new ApiError(400, "INVALID_RESET_TOKEN", "This reset link is invalid.");
 
   user.passwordHash = await hashPassword(newPassword);
+  user.passwordChangedAt = new Date();
   await user.save();
   await passwordResetRepo.markUsed(stored._id);
-  await refreshTokenRepo.revokeAllForUser(user._id); // force re-login everywhere after a reset
+  await refreshTokenRepo.revokeAllForUser(user._id);
 }
 
 async function bootstrapSuperAdmin({ name, email, password, bootstrapSecret }) {
@@ -122,6 +117,7 @@ async function bootstrapSuperAdmin({ name, email, password, bootstrapSecret }) {
     name,
     role: ROLES.SUPER_ADMIN,
     status: "active",
+    isOwner: true, // the one and only owner - created once, here, never again
   });
   return toPublicUser(user);
 }

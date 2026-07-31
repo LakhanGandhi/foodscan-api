@@ -78,7 +78,6 @@ async function getPublicProductView(productId, requestMeta) {
     },
     company: {
       name: company.companyName,
-      brandName: company.brandName,
       address: company.address,
       website: company.website,
       email: company.email,

@@ -8,6 +8,7 @@ const productRoutes = require("./product.routes");
 const userRoutes = require("./user.routes");
 const publicRoutes = require("./public.routes");
 const analyticsRoutes = require("./analytics.routes");
+const brandRoutes = require("./brand.routes");
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use("/products", productRoutes);
 router.use("/users", userRoutes);
 router.use("/public", publicRoutes);
 router.use("/analytics", analyticsRoutes);
+router.use("/brands", brandRoutes);
 
 module.exports = router;

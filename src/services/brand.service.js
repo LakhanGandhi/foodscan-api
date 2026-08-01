@@ -35,7 +35,16 @@ async function createBrand(data, actorUser, ip) {
 }
 
 async function listBrands(companyScope) {
-  return brandRepo.findAll(companyScope);
+  const brands = await brandRepo.findAll(companyScope);
+  const enriched = await Promise.all(
+    brands.map(async (b) => {
+      const company = await companyRepo.findById(b.companyId);
+      const obj = b.toObject();
+      obj.companyName = company ? company.companyName : "Unknown";
+      return obj;
+    })
+  );
+  return enriched;
 }
 
 async function getBrandById(id, companyScope) {

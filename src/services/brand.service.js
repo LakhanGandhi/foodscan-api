@@ -16,6 +16,9 @@ async function createBrand(data, actorUser, ip) {
 
   const company = await companyRepo.findById(companyId);
   if (!company) throw new ApiError(400, "INVALID_COMPANY", "No company exists with that companyId.");
+  if (company.status !== "approved") {
+    throw new ApiError(400, "COMPANY_NOT_APPROVED", "Brands can only be created for companies with 'approved' status.");
+  }
 
   const brand = await brandRepo.create({ ...data, companyId, createdBy: actorUser.userId });
 

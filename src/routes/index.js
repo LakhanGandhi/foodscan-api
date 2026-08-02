@@ -9,6 +9,7 @@ const userRoutes = require("./user.routes");
 const publicRoutes = require("./public.routes");
 const analyticsRoutes = require("./analytics.routes");
 const brandRoutes = require("./brand.routes");
+const batchRoutes = require("./batch.routes");
 
 const router = express.Router();
 
@@ -22,5 +23,6 @@ router.use("/users", userRoutes);
 router.use("/public", publicRoutes);
 router.use("/analytics", analyticsRoutes);
 router.use("/brands", brandRoutes);
+router.use("/batches", batchRoutes);
 
 module.exports = router;

@@ -26,23 +26,4 @@ const remove = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: { deleted: true }, error: null });
 });
 
-// --- QR Generation ---
-
-const getQrUrl = asyncHandler(async (req, res) => {
-  const url = await productService.getPublicUrl(req.params.id, req.companyScope);
-  res.status(200).json({ success: true, data: { url }, error: null });
-});
-
-const getQrImage = asyncHandler(async (req, res) => {
-  if (req.query.format === "dataurl") {
-    const result = await productService.getQrDataUrl(req.params.id, req.companyScope);
-    return res.status(200).json({ success: true, data: result, error: null });
-  }
-  // Default: raw PNG image, downloadable directly.
-  const buffer = await productService.getQrPngBuffer(req.params.id, req.companyScope);
-  res.set("Content-Type", "image/png");
-  res.set("Content-Disposition", `attachment; filename="${req.params.id}-qr.png"`);
-  res.status(200).send(buffer);
-});
-
-module.exports = { create, list, getById, update, remove, getQrUrl, getQrImage };
+module.exports = { create, list, getById, update, remove };

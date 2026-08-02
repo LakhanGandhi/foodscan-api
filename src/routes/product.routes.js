@@ -24,8 +24,4 @@ router.patch(
 );
 router.delete("/:id", authorize(ROLES.SUPER_ADMIN), productController.remove);
 
-// --- QR Generation ---
-router.get("/:id/qr-url", authorize(...ALL_ROLES), scopeToCompany, productController.getQrUrl);
-router.get("/:id/qr", authorize(...ALL_ROLES), scopeToCompany, productController.getQrImage);
-
 module.exports = router;

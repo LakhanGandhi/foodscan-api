@@ -7,7 +7,6 @@ function createProductValidator(body) {
 
   const required = {
     companyId: body.companyId,
-    plantId: body.plantId,
     brandId: body.brandId,
     productName: body.productName,
     sku: body.sku,

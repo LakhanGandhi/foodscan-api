@@ -5,7 +5,6 @@ const productSchema = new mongoose.Schema(
   {
     _id: { type: String, default: () => generateId("PRD") },
     companyId: { type: String, ref: "Company", required: true, index: true },
-    plantId: { type: String, ref: "Plant", required: true, index: true },
     brandId: { type: String, ref: "Brand", required: true, index: true },
 
     // Basic
@@ -14,7 +13,6 @@ const productSchema = new mongoose.Schema(
     category: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: "" },
 
-    // Manufacturing
     countryOfOrigin: { type: String, required: true, trim: true },
     storageCondition: { type: String, trim: true, default: "" },
 

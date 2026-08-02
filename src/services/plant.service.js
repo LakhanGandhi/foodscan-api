@@ -33,7 +33,16 @@ async function createPlant(data, actorUser, ip) {
 }
 
 async function listPlants(companyScope) {
-  return plantRepo.findAll(companyScope);
+  const plants = await plantRepo.findAll(companyScope);
+  const enriched = await Promise.all(
+    plants.map(async (p) => {
+      const company = await companyRepo.findById(p.companyId);
+      const obj = p.toObject();
+      obj.companyName = company ? company.companyName : "Unknown";
+      return obj;
+    })
+  );
+  return enriched;
 }
 
 async function getPlantById(id, companyScope) {

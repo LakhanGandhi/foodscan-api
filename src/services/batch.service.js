@@ -1,5 +1,6 @@
 const ApiError = require("../utils/ApiError");
 const ROLES = require("../utils/roles");
+const { buildPublicBatchUrl, generateQrPngBuffer, generateQrDataUrl } = require("../utils/qrCode");
 
 const batchRepo = require("../repositories/batch.repository");
 const productRepo = require("../repositories/product.repository");
@@ -105,4 +106,31 @@ async function updateBatch(id, updates, actorUser, companyScope, ip) {
   return updated;
 }
 
-module.exports = { createBatch, listBatches, getBatchById, updateBatch, computeExpiryStatus };
+// --- QR Generation ---
+
+async function getPublicUrl(id, companyScope) {
+  await getBatchById(id, companyScope);
+  return buildPublicBatchUrl(id);
+}
+
+async function getQrPngBuffer(id, companyScope) {
+  const url = await getPublicUrl(id, companyScope);
+  return generateQrPngBuffer(url);
+}
+
+async function getQrDataUrl(id, companyScope) {
+  const url = await getPublicUrl(id, companyScope);
+  const dataUrl = await generateQrDataUrl(url);
+  return { url, dataUrl };
+}
+
+module.exports = {
+  createBatch,
+  listBatches,
+  getBatchById,
+  updateBatch,
+  computeExpiryStatus,
+  getPublicUrl,
+  getQrPngBuffer,
+  getQrDataUrl,
+};

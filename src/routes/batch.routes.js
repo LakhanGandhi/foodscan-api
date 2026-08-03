@@ -17,4 +17,7 @@ router.get("/", authorize(...ALL_ROLES), scopeToCompany, batchController.list);
 router.get("/:id", authorize(...ALL_ROLES), scopeToCompany, batchController.getById);
 router.patch("/:id", authorize(...ALL_ROLES), scopeToCompany, validate(updateBatchValidator), batchController.update);
 
+router.get("/:id/qr-url", authorize(...ALL_ROLES), scopeToCompany, batchController.getQrUrl);
+router.get("/:id/qr", authorize(...ALL_ROLES), scopeToCompany, batchController.getQrImage);
+
 module.exports = router;

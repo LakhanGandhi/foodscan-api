@@ -9,13 +9,17 @@ const batchController = require("../controllers/batch.controller");
 
 const router = express.Router();
 const ALL_ROLES = [ROLES.SUPER_ADMIN, ROLES.COMPANY_ADMIN, ROLES.COMPANY_EMPLOYEE];
+const ADMIN_ROLES = [ROLES.SUPER_ADMIN, ROLES.COMPANY_ADMIN];
 
 router.use(authenticate);
 
+// Create: any role (including Employee) - routine data entry
 router.post("/", authorize(...ALL_ROLES), validate(createBatchValidator), batchController.create);
 router.get("/", authorize(...ALL_ROLES), scopeToCompany, batchController.list);
 router.get("/:id", authorize(...ALL_ROLES), scopeToCompany, batchController.getById);
-router.patch("/:id", authorize(...ALL_ROLES), scopeToCompany, validate(updateBatchValidator), batchController.update);
+
+// Edit (including the recall toggle): Admin roles only - a consequential action, not routine entry
+router.patch("/:id", authorize(...ADMIN_ROLES), scopeToCompany, validate(updateBatchValidator), batchController.update);
 
 router.get("/:id/qr-url", authorize(...ALL_ROLES), scopeToCompany, batchController.getQrUrl);
 router.get("/:id/qr", authorize(...ALL_ROLES), scopeToCompany, batchController.getQrImage);
